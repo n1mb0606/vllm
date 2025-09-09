@@ -522,7 +522,9 @@ def add_cli_args(parser: argparse.ArgumentParser):
     parser = AsyncEngineArgs.add_cli_args(parser)
 
 
+import nvtx
 def main(args: argparse.Namespace):
+    print(args.async_engine)
     if args.tokenizer is None:
         args.tokenizer = args.model
     validate_args(args)

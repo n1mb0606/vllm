@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import nvtx
 import itertools
 import warnings
 from collections.abc import Sequence
@@ -1545,6 +1546,7 @@ class LLM:
         )
         return params
 
+    @nvtx.annotate()
     def _run_engine(
         self,
         *,
@@ -1567,10 +1569,13 @@ class LLM:
         total_in_toks = 0
         total_out_toks = 0
         while self.llm_engine.has_unfinished_requests():
+            rng2 = nvtx.start_range(message="step", color="red")
             step_outputs = self.llm_engine.step()
+            nvtx.end_range(rng2)
             for output in step_outputs:
                 if output.finished:
                     outputs.append(output)
+                    rng = nvtx.start_range(message='output_loop', color='green')
                     if use_tqdm:
                         if isinstance(output, RequestOutput):
                             # Calculate tokens only for RequestOutput
@@ -1590,6 +1595,7 @@ class LLM:
                             pbar.update(1)
                         if pbar.n == num_requests:
                             pbar.refresh()
+                    nvtx.end_range(rng)
 
         if use_tqdm:
             pbar.close()
