@@ -2356,12 +2356,14 @@ class MemorySnapshot:
             "allocated_bytes.all.peak", 0)
 
         self.free_memory, self.total_memory = torch.cuda.mem_get_info()
-        self.cuda_memory = self.total_memory - self.free_memory
+        self.total_memory = self.total_memory * 0.4 # scaling (gpu-memory-util)
+        self.cuda_memory = 0
+        #self.cuda_memory = 0 if (self.total_memory - self.free_memory) < 0 else self.total_memory - self.free_memory
 
         # torch.cuda.memory_reserved() is how many bytes
         # PyTorch gets from cuda (by calling cudaMalloc, etc.)
         # this is used to measure the non-torch memory usage
-        self.torch_memory = torch.cuda.memory_reserved()
+        self.torch_memory = torch.cuda.memory_reserved() # weight included
 
         self.non_torch_memory = self.cuda_memory - self.torch_memory
         self.timestamp = time.time()
@@ -2471,6 +2473,7 @@ def memory_profiling(
     torch.cuda.empty_cache()
 
     result.after_profile.measure()
+    logger.info(f'after_profile: {result.after_profile}')
 
     diff_profile = result.after_profile - result.before_profile
     diff_from_create = result.after_profile - result.before_create

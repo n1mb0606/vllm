@@ -61,6 +61,7 @@ class EngineCoreClient(ABC):
         log_stats: bool,
     ) -> "EngineCoreClient":
 
+        print('executor_class', executor_class)
         # TODO: support this for debugging purposes.
         if asyncio_mode and not multiprocess_mode:
             raise NotImplementedError(

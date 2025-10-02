@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import nvtx
 from collections.abc import Mapping
 from copy import copy
 from typing import Any, Callable, Optional, Union
@@ -97,6 +98,7 @@ class LLMEngine:
         self.output_processor = OutputProcessor(self.tokenizer,
                                                 log_stats=self.log_stats)
 
+        rng6 = nvtx.start_range(message="create_engine_core")
         # EngineCore (gets EngineCoreRequests and gives EngineCoreOutputs)
         self.engine_core = EngineCoreClient.make_client(
             multiprocess_mode=multiprocess_mode,
@@ -105,6 +107,7 @@ class LLMEngine:
             executor_class=executor_class,
             log_stats=self.log_stats,
         )
+        nvtx.end_range(rng6)
 
         if not multiprocess_mode:
             # for v0 compatibility

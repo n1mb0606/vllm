@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+import nvtx
 import os
 import queue
 import signal
@@ -72,12 +73,15 @@ class EngineCore:
         self.log_stats = log_stats
 
         # Setup Model.
+        rng7 = nvtx.start_range(message="setup_model")
         self.model_executor = executor_class(vllm_config)
         if executor_fail_callback is not None:
             self.model_executor.register_failure_callback(
                 executor_fail_callback)
+        nvtx.end_range(rng7)
 
         # Setup KV Caches and update CacheConfig after profiling.
+        rng8 = nvtx.start_range(message="init_kv_cache")
         num_gpu_blocks, num_cpu_blocks, kv_cache_config = \
             self._initialize_kv_caches(vllm_config)
 
@@ -87,7 +91,9 @@ class EngineCore:
                             args=(num_gpu_blocks, num_cpu_blocks))
 
         self.structured_output_manager = StructuredOutputManager(vllm_config)
+        nvtx.end_range(rng8)
 
+        print(vllm_config.scheduler_config.scheduler_cls)
         # Setup scheduler.
         if isinstance(vllm_config.scheduler_config.scheduler_cls, str):
             Scheduler = resolve_obj_by_qualname(

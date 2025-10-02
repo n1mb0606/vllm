@@ -140,6 +140,7 @@ class Worker(WorkerBase):
             self.init_snapshot = MemorySnapshot()
             self.requested_memory = (self.init_snapshot.total_memory *
                                      self.cache_config.gpu_memory_utilization)
+            logger.info(f'init_device: {self.init_snapshot}')
             if self.init_snapshot.free_memory < self.requested_memory:
                 GiB = lambda b: round(b / GiB_bytes, 2)
                 raise ValueError(
@@ -222,6 +223,8 @@ class Worker(WorkerBase):
             "isolate vLLM in its own container.")
         available_kv_cache_memory = self.requested_memory \
             - profile_result.non_kv_cache_memory
+        logger.info(f'profile_result: {profile_result}')
+        logger.info(f'request_memory: {GiB(self.requested_memory)}, non_kv_cache_mem: {GiB(profile_result.non_kv_cache_memory)}')
 
         logger.debug(
             "Initial free memory: %.2f GiB, free memory: %.2f GiB, "

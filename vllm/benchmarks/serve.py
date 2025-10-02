@@ -337,6 +337,7 @@ async def benchmark(
     )
 
     test_output = await request_func(request_func_input=test_input)
+    print(test_output)
     if not test_output.success:
         raise ValueError(
             "Initial test run failed - Please make sure benchmark arguments "
@@ -410,6 +411,7 @@ async def benchmark(
     async for request, current_request_rate in get_request(
             input_requests, request_rate, burstiness, ramp_up_strategy,
             ramp_up_start_rps, ramp_up_end_rps):
+        print(request)
         if ramp_up_strategy is not None:
             current_int_rps = int(current_request_rate)
             if current_int_rps > last_int_rps:

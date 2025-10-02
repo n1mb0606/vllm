@@ -269,8 +269,10 @@ class LLM:
         )
 
         # Create the Engine (autoselects V0 vs V1)
+        rng3 = nvtx.start_range(message="create_engine", color='yellow')
         self.llm_engine = LLMEngine.from_engine_args(
             engine_args=engine_args, usage_context=UsageContext.LLM_CLASS)
+        nvtx.end_range(rng3)
         self.engine_class = type(self.llm_engine)
 
         self.request_counter = Counter()
