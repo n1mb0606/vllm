@@ -2341,6 +2341,7 @@ class MemorySnapshot:
     non_torch_memory: int = 0
     timestamp: float = 0.0
     auto_measure: bool = True
+    total_memory_scale: float = 1.0 # gpu-memory-util per process
 
     def __post_init__(self):
         if self.auto_measure:
@@ -2356,9 +2357,10 @@ class MemorySnapshot:
             "allocated_bytes.all.peak", 0)
 
         self.free_memory, self.total_memory = torch.cuda.mem_get_info()
-        self.total_memory = self.total_memory * 0.4 # scaling (gpu-memory-util)
-        self.cuda_memory = 0
-        #self.cuda_memory = 0 if (self.total_memory - self.free_memory) < 0 else self.total_memory - self.free_memory
+        #self.total_memory = self.total_memory * self.total_memory_scale # scaling (gpu-memory-util)
+        #self.cuda_memory = 0
+        #self.cuda_memory = 0 if (self.total_memory - self.free_memory) < 1 else self.total_memory - self.free_memory # 
+        self.cuda_memory = self.total_memory - self.free_memory
 
         # torch.cuda.memory_reserved() is how many bytes
         # PyTorch gets from cuda (by calling cudaMalloc, etc.)
@@ -2393,7 +2395,13 @@ class MemoryProfilingResult:
     before_profile: MemorySnapshot = field(default_factory=MemorySnapshot)
     after_profile: MemorySnapshot = field(default_factory=MemorySnapshot)
     profile_time: float = 0.0
+    total_memory_scale: float = 1.0 # gpu-memory-util per process
 
+    def __post_init__(self):
+        self.before_create = MemorySnapshot(total_memory_scale=self.total_memory_scale)
+        self.before_profile = MemorySnapshot(total_memory_scale=self.total_memory_scale)
+        self.after_profile = MemorySnapshot(total_memory_scale=self.total_memory_scale)
+    
     def __repr__(self) -> str:
         return (f"Memory profiling takes {self.profile_time:.2f} seconds. "
                 f"Total non KV cache memory: "
@@ -2408,7 +2416,7 @@ class MemoryProfilingResult:
 @contextlib.contextmanager
 def memory_profiling(
         baseline_snapshot: MemorySnapshot,
-        weights_memory: int) -> Generator[MemoryProfilingResult, None, None]:
+        weights_memory: int, scale: float) -> Generator[MemoryProfilingResult, None, None]:
     """Memory profiling context manager.
     baseline_snapshot: the memory snapshot before the current vLLM instance.
     weights_memory: memory used by PyTorch when loading the model weights.
@@ -2459,7 +2467,7 @@ def memory_profiling(
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
 
-    result = MemoryProfilingResult()
+    result = MemoryProfilingResult(total_memory_scale=scale)
 
     result.before_create = baseline_snapshot
     # the part of memory used for holding the model weights

@@ -137,9 +137,11 @@ class Worker(WorkerBase):
             torch.cuda.empty_cache()
 
             # take current memory snapshot
-            self.init_snapshot = MemorySnapshot()
+            # lock
+            self.init_snapshot = MemorySnapshot(total_memory_scale=self.cache_config.gpu_memory_utilization)
             self.requested_memory = (self.init_snapshot.total_memory *
                                      self.cache_config.gpu_memory_utilization)
+            #self.requested_memory = self.init_snapshot.total_memory
             logger.info(f'init_device: {self.init_snapshot}')
             if self.init_snapshot.free_memory < self.requested_memory:
                 GiB = lambda b: round(b / GiB_bytes, 2)
@@ -207,7 +209,8 @@ class Worker(WorkerBase):
         with memory_profiling(
                 self.init_snapshot,
                 weights_memory=int(
-                    self.model_runner.model_memory_usage)) as profile_result:
+                    self.model_runner.model_memory_usage),
+                scale=self.cache_config.gpu_memory_utilization) as profile_result:
             self.model_runner.profile_run()
 
         free_gpu_memory = profile_result.after_profile.free_memory
