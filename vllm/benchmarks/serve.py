@@ -337,7 +337,7 @@ async def benchmark(
     )
 
     test_output = await request_func(request_func_input=test_input)
-    print(test_output)
+    #print(test_output)
     if not test_output.success:
         raise ValueError(
             "Initial test run failed - Please make sure benchmark arguments "
